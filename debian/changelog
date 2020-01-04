@@ -1,3 +1,13 @@
+dh-golang (1.44) unstable; urgency=medium
+
+  * Team upload.
+  * Also export PKG_CONFIG for cross compiling. (Closes: #945479)
+    Thanks Helmut Grohne
+  * Fix reproducible build in go1.13, using -trimpath
+    https://github.com/golang/go/issues/16860
+
+ -- Shengjing Zhu <zhsj@debian.org>  Sat, 04 Jan 2020 21:29:47 +0800
+
 dh-golang (1.43) unstable; urgency=medium
 
   [ Helmut Grohne ]
