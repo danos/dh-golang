@@ -1,3 +1,10 @@
+dh-golang (1.45) unstable; urgency=medium
+
+  * Team upload.
+  * Pass different trimpath arg for different go version (Closes: #948163)
+
+ -- Shengjing Zhu <zhsj@debian.org>  Sun, 05 Jan 2020 04:25:18 +0800
+
 dh-golang (1.44) unstable; urgency=medium
 
   * Team upload.
