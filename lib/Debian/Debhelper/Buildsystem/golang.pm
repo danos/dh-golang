@@ -344,6 +344,9 @@ sub _set_gocross {
     unless ($ENV{CC}) {
         $ENV{CC} = dpkg_architecture_value("DEB_HOST_GNU_TYPE") . "-gcc";
     }
+    unless ($ENV{PKG_CONFIG}) {
+        $ENV{PKG_CONFIG} = dpkg_architecture_value("DEB_HOST_GNU_TYPE") . "-pkg-config";
+    }
 
     $ENV{CGO_ENABLED} = "1";
 
