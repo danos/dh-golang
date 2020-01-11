@@ -344,6 +344,9 @@ sub _set_gocross {
     unless ($ENV{CC}) {
         $ENV{CC} = dpkg_architecture_value("DEB_HOST_GNU_TYPE") . "-gcc";
     }
+    unless ($ENV{PKG_CONFIG}) {
+        $ENV{PKG_CONFIG} = dpkg_architecture_value("DEB_HOST_GNU_TYPE") . "-pkg-config";
+    }
 
     $ENV{CGO_ENABLED} = "1";
 
@@ -535,9 +538,19 @@ sub build {
         $this->doit_in_builddir("go", "generate", "-v", @_, get_targets());
     }
     unshift @_, ('-p', $this->get_parallel());
-    # Go 1.10 changed flag behaviour, -{gc,asm}flags=all= only works for Go >= 1.10.
-    my $trimpath = "all=\"-trimpath=" . $ENV{GOPATH} . "/src\"";
-    $this->doit_in_builddir("go", "install", "-gcflags=$trimpath", "-asmflags=$trimpath", "-v", @_, get_targets());
+
+    my ($minor) = (qx(go version) =~ /go version go1\.([0-9]+)/);
+    if ($minor >= 13) {
+        # Go 1.13 officially supports reproducible build, adding new -trimpath option
+        # https://github.com/golang/go/issues/16860
+        $this->doit_in_builddir("go", "install", "-trimpath", "-v", @_, get_targets());
+    } elsif ($minor >= 10) {
+        # Go 1.10 changed flag behaviour, -{gc,asm}flags=all= only works for Go >= 1.10.
+        my $trimpath = "all=\"-trimpath=" . $ENV{GOPATH} . "/src\"";
+        $this->doit_in_builddir("go", "install", "-gcflags=$trimpath", "-asmflags=$trimpath", "-v", @_, get_targets());
+    } else {
+        $this->doit_in_builddir("go", "install", "-v", @_, get_targets());
+    }
 }
 
 sub test {

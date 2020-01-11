@@ -1,3 +1,20 @@
+dh-golang (1.45) unstable; urgency=medium
+
+  * Team upload.
+  * Pass different trimpath arg for different go version (Closes: #948163)
+
+ -- Shengjing Zhu <zhsj@debian.org>  Sun, 05 Jan 2020 04:25:18 +0800
+
+dh-golang (1.44) unstable; urgency=medium
+
+  * Team upload.
+  * Also export PKG_CONFIG for cross compiling. (Closes: #945479)
+    Thanks Helmut Grohne
+  * Fix reproducible build in go1.13, using -trimpath
+    https://github.com/golang/go/issues/16860
+
+ -- Shengjing Zhu <zhsj@debian.org>  Sat, 04 Jan 2020 21:29:47 +0800
+
 dh-golang (1.43~bpo10+1) buster-backports; urgency=medium
 
   * Rebuild for buster-backports.
