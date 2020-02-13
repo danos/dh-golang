@@ -376,6 +376,12 @@ sub _set_gocross {
     }
 }
 
+my ($_go1_minor) = (qx(go version) =~ /go version go1\.([0-9]+)/);
+sub _go1_has_minor {
+    my ($minor) = @_;
+    return $_go1_minor >= $minor;
+}
+
 sub _link_contents {
     my ($src, $dst) = @_;
 
@@ -544,12 +550,11 @@ sub build {
     }
     unshift @_, ('-p', $this->get_parallel());
 
-    my ($minor) = (qx(go version) =~ /go version go1\.([0-9]+)/);
-    if ($minor >= 13) {
+    if (_go1_has_minor(13)) {
         # Go 1.13 officially supports reproducible build, adding new -trimpath option
         # https://github.com/golang/go/issues/16860
         $this->doit_in_builddir("go", "install", "-trimpath", "-v", @_, get_targets());
-    } elsif ($minor >= 10) {
+    } elsif (_go1_has_minor(10)) {
         # Go 1.10 changed flag behaviour, -{gc,asm}flags=all= only works for Go >= 1.10.
         my $trimpath = "all=\"-trimpath=" . $ENV{GOPATH} . "/src\"";
         $this->doit_in_builddir("go", "install", "-gcflags=$trimpath", "-asmflags=$trimpath", "-v", @_, get_targets());
@@ -565,8 +570,7 @@ sub test {
     # Go 1.10 started calling “go vet” when running “go test”. This breaks tests
     # of many not-yet-fixed upstream packages, so we disable it for the time
     # being.
-    my ($minor) = (qx(go version) =~ /go version go1\.([0-9]+)/);
-    if ($minor >= 10) {
+    if (_go1_has_minor(10)) {
         $this->doit_in_builddir("go", "test", "-vet=off", "-v", @_, get_targets());
     } else {
         # For backwards-compatibility with Go < 1.10, which incorrectly
