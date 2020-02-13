@@ -68,9 +68,7 @@ sub exec_chunked {
 buildsystems_init();
 my $bs = load_buildsystem("golang");
 
-$bs->_set_gopath();
-$bs->_set_gocache();
-$bs->_set_go111module();
+$bs->set_go_env();
 
 my @targets = $bs->get_targets();
 

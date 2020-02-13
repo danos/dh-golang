@@ -265,6 +265,7 @@ sub new {
     my $this = $class->SUPER::new(@_);
     $this->prefer_out_of_source_building();
     _set_dh_gopkg();
+    $this->set_go_env();
     return $this;
 }
 
@@ -283,6 +284,15 @@ sub _set_dh_gopkg {
     #                             launchpad.net/mgo
     my $import = $source->{"XS-Go-Import-Path"} =~ s/\n/ /gr;
     $ENV{DH_GOPKG} = (split ",", $import)[0];
+}
+
+sub set_go_env {
+    my $this = shift;
+    $this->_set_gopath();
+    $this->_set_gocache();
+    $this->_set_go111module();
+    $this->_set_goproxy();
+    $this->_set_gocross();
 }
 
 sub _set_gopath {
@@ -529,11 +539,6 @@ sub get_targets {
 sub build {
     my $this = shift;
 
-    $this->_set_gopath();
-    $this->_set_gocache();
-    $this->_set_go111module();
-    $this->_set_goproxy();
-    $this->_set_gocross();
     if (exists($ENV{DH_GOLANG_GO_GENERATE}) && $ENV{DH_GOLANG_GO_GENERATE} == 1) {
         $this->doit_in_builddir("go", "generate", "-v", @_, get_targets());
     }
@@ -556,10 +561,6 @@ sub build {
 sub test {
     my $this = shift;
 
-    $this->_set_gopath();
-    $this->_set_gocache();
-    $this->_set_go111module();
-    $this->_set_goproxy();
     unshift @_, ('-p', $this->get_parallel());
     # Go 1.10 started calling “go vet” when running “go test”. This breaks tests
     # of many not-yet-fixed upstream packages, so we disable it for the time
@@ -597,7 +598,6 @@ sub install {
     if ($install_binaries and @binaries > 0) {
         $this->doit_in_builddir('mkdir', '-p', "$destdir/usr");
         if (is_cross_compiling()) {
-            $this->_set_gocross();
             $this->doit_in_builddir('cp', '-r', '-T', "bin/$ENV{GOOS}_$ENV{GOARCH}", "$destdir/usr/bin");
         } else {
             $this->doit_in_builddir('cp', '-r', 'bin', "$destdir/usr");
@@ -656,9 +656,6 @@ sub install {
 
 sub clean {
     my $this = shift;
-
-    $this->_set_gopath();
-    $this->_set_go111module();
 
     # "go clean -modcache" is new in Go 1.11, so run it only if
     # $GOPATH/pkg/mod exists to avoid error with older Go versions.
