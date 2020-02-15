@@ -246,6 +246,7 @@ and possibly fix any resulting breakages).
 use strict;
 use base 'Debian::Debhelper::Buildsystem';
 use Debian::Debhelper::Dh_Lib;
+use Dpkg::BuildFlags;
 use Dpkg::Control::Info;
 use File::Copy "cp"; # in core since 5.002
 use File::Path qw(make_path); # in core since 5.001
@@ -292,6 +293,7 @@ sub set_go_env {
     $this->_set_gocache();
     $this->_set_go111module();
     $this->_set_goproxy();
+    $this->_set_cgo_flags();
     $this->_set_gocross();
 }
 
@@ -322,6 +324,18 @@ sub _set_goproxy {
 
     # Disallow network access.
     $ENV{GOPROXY} = "off";
+}
+
+sub _set_cgo_flags {
+    my $bf = Dpkg::BuildFlags->new();
+    $bf->load_config();
+
+    my @flags = ( "CFLAGS", "CPPFLAGS", "CXXFLAGS", "FFLAGS", "LDFLAGS" );
+    foreach my $flag (@flags) {
+        if (! exists $ENV{"CGO_" . $flag}) {
+            $ENV{"CGO_" . $flag} = $bf->get($flag);
+        }
+    }
 }
 
 my %GOOS_MAPPING = (
@@ -544,6 +558,11 @@ sub get_targets {
 
 sub build {
     my $this = shift;
+
+    if ($dh{VERBOSE}) {
+        $this->doit_in_builddir("go", "version");
+        $this->doit_in_builddir("go", "env");
+    }
 
     if (exists($ENV{DH_GOLANG_GO_GENERATE}) && $ENV{DH_GOLANG_GO_GENERATE} == 1) {
         $this->doit_in_builddir("go", "generate", "-v", @_, get_targets());
