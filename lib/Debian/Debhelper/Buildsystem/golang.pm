@@ -320,7 +320,7 @@ sub _set_go111module {
 }
 
 sub _set_goproxy {
-    return if defined($ENV{GOPROXY}) && $ENV{GOPROXY} ne '';
+    return if defined($ENV{GOPROXY});
 
     # Disallow network access.
     $ENV{GOPROXY} = "off";
