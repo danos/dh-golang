@@ -1,3 +1,25 @@
+dh-golang (1.46) unstable; urgency=medium
+
+  [ Shengjing Zhu ]
+  * Move all env setup to sub new
+  * Move comparison of go minor version to subroutine
+  * Set default CGO FLAGS to values from dpkg buildflags.
+    This changes CGO FLAGS to:
+    CGO_CFLAGS="-g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. -fstack-protector-strong -Wformat -Werror=format-security"
+    CGO_CPPFLAGS="-Wdate-time -D_FORTIFY_SOURCE=2"
+    CGO_CXXFLAGS="-g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. -fstack-protector-strong -Wformat -Werror=format-security"
+    CGO_FFLAGS="-g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. -fstack-protector-strong"
+    CGO_LDFLAGS="-Wl,-z,relro"
+    This makes the CGO FLAGS more consistent to the default one
+    in Debian. (Closes: #951262)
+
+  [ Anthony Fok ]
+  * Allow user-defined GOPROXY="" to override GOPROXY=off
+    so as to tell Go 1.13 to set GOPROXY to its default non-empty value.
+  * Bump Standards-Version to 4.5.0 (no change)
+
+ -- Anthony Fok <foka@debian.org>  Sun, 16 Feb 2020 18:58:28 -0700
+
 dh-golang (1.45) unstable; urgency=medium
 
   * Team upload.
