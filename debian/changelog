@@ -5,10 +5,13 @@ dh-golang (1.46) unstable; urgency=medium
   * Move comparison of go minor version to subroutine
   * Set default CGO FLAGS to values from dpkg buildflags.
     This changes CGO FLAGS to:
-    CGO_CFLAGS="-g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. -fstack-protector-strong -Wformat -Werror=format-security"
+    CGO_CFLAGS="-g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. \
+        -fstack-protector-strong -Wformat -Werror=format-security"
     CGO_CPPFLAGS="-Wdate-time -D_FORTIFY_SOURCE=2"
-    CGO_CXXFLAGS="-g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. -fstack-protector-strong -Wformat -Werror=format-security"
-    CGO_FFLAGS="-g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. -fstack-protector-strong"
+    CGO_CXXFLAGS="-g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. \
+        -fstack-protector-strong -Wformat -Werror=format-security"
+    CGO_FFLAGS="-g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. \
+        -fstack-protector-strong"
     CGO_LDFLAGS="-Wl,-z,relro"
     This makes the CGO FLAGS more consistent to the default one
     in Debian. (Closes: #951262)
