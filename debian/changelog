@@ -1,3 +1,29 @@
+dh-golang (1.47) unstable; urgency=medium
+
+  [ Shengjing Zhu ]
+  * Skip empty pattern when check target lists (Closes: #952173)
+    If the PATTERN evaluates to the empty string, the last
+    successfully matched regular expression is used instead
+    Thanks @lilydjwg
+
+  [ Anthony Fok ]
+  * Replace / / with ' ' as pattern in Perl split() calls,
+    emulating awk’s behaviour such that leading whitespace and
+    consecutive spaces do not become empty strings in the resulting list.
+    This was the case with golang-gopkg-gorethink-gorethink.v3 when its
+    DH_GOLANG_EXCLUDES created empty string patterns, such that
+    "grep { !/$pattern/ } @targets" stripped the list empty and
+    caused e.g. "go test" call to fail.  That FTBFS did not happen
+    before dh-golang 1.46 as it was hidden by Perl 5’s peculiar feature:
+    “If the PATTERN evaluates to the empty string,
+    the last successfully matched regular expression is used instead.”
+    See https://metacpan.org/pod/perlop#The-empty-pattern and
+    https://github.com/Perl/perl5/issues/17577 for more. (Closes: #952173)
+  * Warn in case an empty pattern is detected even if split(' ', ...)
+    should have prevented it in the first place.  For future-proofing.
+
+ -- Anthony Fok <foka@debian.org>  Mon, 24 Feb 2020 12:27:16 -0700
+
 dh-golang (1.46) unstable; urgency=medium
 
   [ Shengjing Zhu ]
