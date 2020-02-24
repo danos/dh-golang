@@ -487,7 +487,7 @@ sub configure {
 
     # Extra files/directories to install.
     my @install_extra = (exists($ENV{DH_GOLANG_INSTALL_EXTRA}) ?
-                         split(/ /, $ENV{DH_GOLANG_INSTALL_EXTRA}) : ());
+                         split(' ', $ENV{DH_GOLANG_INSTALL_EXTRA}) : ());
 
     find({
         wanted => sub {
@@ -545,7 +545,7 @@ sub get_targets {
     my $buildpkg = $ENV{DH_GOLANG_BUILDPKG} || "$ENV{DH_GOPKG}/...";
     my $output = qx(go list $buildpkg);
     my @excludes = (exists($ENV{DH_GOLANG_EXCLUDES}) ?
-                    split(/ /, $ENV{DH_GOLANG_EXCLUDES}) : ());
+                    split(' ', $ENV{DH_GOLANG_EXCLUDES}) : ());
     my @targets = split(/\n/, $output);
 
     # Remove all targets that are matched by one of the regular expressions in DH_GOLANG_EXCLUDES.
@@ -640,7 +640,7 @@ sub install {
                             $ENV{DH_GOLANG_EXCLUDES_ALL} : $exclude_all_default);
 
         my @excludes = (exists($ENV{DH_GOLANG_EXCLUDES}) && $exclude_all ?
-                        split(/ /, $ENV{DH_GOLANG_EXCLUDES}) : ());
+                        split(' ', $ENV{DH_GOLANG_EXCLUDES}) : ());
 
         find({
             wanted => sub {
