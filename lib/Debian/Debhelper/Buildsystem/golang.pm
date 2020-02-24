@@ -550,7 +550,10 @@ sub get_targets {
 
     # Remove all targets that are matched by one of the regular expressions in DH_GOLANG_EXCLUDES.
     for my $pattern (@excludes) {
-        next if ! $pattern;
+        if (! $pattern) {
+            warning("Unexpected empty \$pattern in \@excludes in get_targets().\n                       Please report this bug against dh-golang.");
+            next;
+        }
         @targets = grep { !/$pattern/ } @targets;
     }
 
