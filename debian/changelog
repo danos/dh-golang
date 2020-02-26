@@ -1,3 +1,11 @@
+dh-golang (1.48) unstable; urgency=medium
+
+  * Prevent "no non-test Go files" error during build
+    in case a target path contains only *_test.go files,
+    e.g. golang.org/x/crypto/internal/wycheproof
+
+ -- Anthony Fok <foka@debian.org>  Wed, 26 Feb 2020 13:28:21 -0700
+
 dh-golang (1.47) unstable; urgency=medium
 
   [ Shengjing Zhu ]
