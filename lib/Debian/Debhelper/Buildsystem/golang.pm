@@ -542,19 +542,41 @@ sub configure {
 }
 
 sub get_targets {
+    my $this = shift;
+
     my $buildpkg = $ENV{DH_GOLANG_BUILDPKG} || "$ENV{DH_GOPKG}/...";
     my $output = qx(go list $buildpkg);
     my @excludes = (exists($ENV{DH_GOLANG_EXCLUDES}) ?
                     split(' ', $ENV{DH_GOLANG_EXCLUDES}) : ());
     my @targets = split(/\n/, $output);
 
-    # Remove all targets that are matched by one of the regular expressions in DH_GOLANG_EXCLUDES.
+    # Remove all targets that are matched by one of the regular expressions
+    # in DH_GOLANG_EXCLUDES.
     for my $pattern (@excludes) {
         if (! $pattern) {
             warning("Unexpected empty \$pattern in \@excludes in get_targets().\n                       Please report this bug against dh-golang.");
             next;
         }
         @targets = grep { !/$pattern/ } @targets;
+    }
+
+    # Prevent "no non-test Go files" error during build,
+    # e.g. in golang.org/x/crypto/internal/wycheproof
+    # See also https://github.com/golang/go/issues/22409
+    my $caller = (caller(1))[3];
+    if ($caller eq "Debian::Debhelper::Buildsystem::golang::build") {
+        my $builddir = $this->get_builddir();
+        for my $target (@targets) {
+            my $dir = "$builddir/src/$target";
+            opendir(my $dirh, $dir) or error("Unable to open directory $dir $!");
+            my @non_test_go_files = grep { /(?<!_test)\.go$/ && -f "$dir/$_" } readdir($dirh);
+            closedir $dirh;
+
+            if (! @non_test_go_files) {
+                warning("$target contains no non-test Go files, removing it from build");
+                @targets = grep { $_ ne $target } @targets;
+            };
+        }
     }
 
     return @targets;
@@ -568,37 +590,42 @@ sub build {
         $this->doit_in_builddir("go", "env");
     }
 
+    my @targets = $this->get_targets();
+
     if (exists($ENV{DH_GOLANG_GO_GENERATE}) && $ENV{DH_GOLANG_GO_GENERATE} == 1) {
-        $this->doit_in_builddir("go", "generate", "-v", @_, get_targets());
+        $this->doit_in_builddir("go", "generate", "-v", @_, @targets);
     }
     unshift @_, ('-p', $this->get_parallel());
 
     if (_go1_has_minor(13)) {
         # Go 1.13 officially supports reproducible build, adding new -trimpath option
         # https://github.com/golang/go/issues/16860
-        $this->doit_in_builddir("go", "install", "-trimpath", "-v", @_, get_targets());
+        $this->doit_in_builddir("go", "install", "-trimpath", "-v", @_, @targets);
     } elsif (_go1_has_minor(10)) {
         # Go 1.10 changed flag behaviour, -{gc,asm}flags=all= only works for Go >= 1.10.
         my $trimpath = "all=\"-trimpath=" . $ENV{GOPATH} . "/src\"";
-        $this->doit_in_builddir("go", "install", "-gcflags=$trimpath", "-asmflags=$trimpath", "-v", @_, get_targets());
+        $this->doit_in_builddir("go", "install", "-gcflags=$trimpath", "-asmflags=$trimpath", "-v", @_, @targets);
     } else {
-        $this->doit_in_builddir("go", "install", "-v", @_, get_targets());
+        $this->doit_in_builddir("go", "install", "-v", @_, @targets);
     }
 }
 
 sub test {
     my $this = shift;
 
+    my @targets = $this->get_targets();
+
     unshift @_, ('-p', $this->get_parallel());
+
     # Go 1.10 started calling “go vet” when running “go test”. This breaks tests
     # of many not-yet-fixed upstream packages, so we disable it for the time
     # being.
     if (_go1_has_minor(10)) {
-        $this->doit_in_builddir("go", "test", "-vet=off", "-v", @_, get_targets());
+        $this->doit_in_builddir("go", "test", "-vet=off", "-v", @_, @targets);
     } else {
         # For backwards-compatibility with Go < 1.10, which incorrectly
         # interprets the -vet=off flag as a target:
-        $this->doit_in_builddir("go", "test", "-v", @_, get_targets());
+        $this->doit_in_builddir("go", "test", "-v", @_, @targets);
     }
 }
 
