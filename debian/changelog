@@ -1,3 +1,62 @@
+dh-golang (1.48) unstable; urgency=medium
+
+  * Prevent "no non-test Go files" error during build
+    in case a target path contains only *_test.go files,
+    e.g. golang.org/x/crypto/internal/wycheproof
+
+ -- Anthony Fok <foka@debian.org>  Wed, 26 Feb 2020 13:28:21 -0700
+
+dh-golang (1.47) unstable; urgency=medium
+
+  [ Shengjing Zhu ]
+  * Skip empty pattern when check target lists (Closes: #952173)
+    If the PATTERN evaluates to the empty string, the last
+    successfully matched regular expression is used instead
+    Thanks @lilydjwg
+
+  [ Anthony Fok ]
+  * Replace / / with ' ' as pattern in Perl split() calls,
+    emulating awk’s behaviour such that leading whitespace and
+    consecutive spaces do not become empty strings in the resulting list.
+    This was the case with golang-gopkg-gorethink-gorethink.v3 when its
+    DH_GOLANG_EXCLUDES created empty string patterns, such that
+    "grep { !/$pattern/ } @targets" stripped the list empty and
+    caused e.g. "go test" call to fail.  That FTBFS did not happen
+    before dh-golang 1.46 as it was hidden by Perl 5’s peculiar feature:
+    “If the PATTERN evaluates to the empty string,
+    the last successfully matched regular expression is used instead.”
+    See https://metacpan.org/pod/perlop#The-empty-pattern and
+    https://github.com/Perl/perl5/issues/17577 for more. (Closes: #952173)
+  * Warn in case an empty pattern is detected even if split(' ', ...)
+    should have prevented it in the first place.  For future-proofing.
+
+ -- Anthony Fok <foka@debian.org>  Mon, 24 Feb 2020 12:27:16 -0700
+
+dh-golang (1.46) unstable; urgency=medium
+
+  [ Shengjing Zhu ]
+  * Move all env setup to sub new
+  * Move comparison of go minor version to subroutine
+  * Set default CGO FLAGS to values from dpkg buildflags.
+    This changes CGO FLAGS to:
+    CGO_CFLAGS="-g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. \
+        -fstack-protector-strong -Wformat -Werror=format-security"
+    CGO_CPPFLAGS="-Wdate-time -D_FORTIFY_SOURCE=2"
+    CGO_CXXFLAGS="-g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. \
+        -fstack-protector-strong -Wformat -Werror=format-security"
+    CGO_FFLAGS="-g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. \
+        -fstack-protector-strong"
+    CGO_LDFLAGS="-Wl,-z,relro"
+    This makes the CGO FLAGS more consistent to the default one
+    in Debian. (Closes: #951262)
+
+  [ Anthony Fok ]
+  * Allow user-defined GOPROXY="" to override GOPROXY=off
+    so as to tell Go 1.13 to set GOPROXY to its default non-empty value.
+  * Bump Standards-Version to 4.5.0 (no change)
+
+ -- Anthony Fok <foka@debian.org>  Sun, 16 Feb 2020 18:58:28 -0700
+
 dh-golang (1.45~bpo10+1) buster-backports; urgency=medium
 
   * Rebuild for buster-backports.

@@ -246,6 +246,7 @@ and possibly fix any resulting breakages).
 use strict;
 use base 'Debian::Debhelper::Buildsystem';
 use Debian::Debhelper::Dh_Lib;
+use Dpkg::BuildFlags;
 use Dpkg::Control::Info;
 use File::Copy "cp"; # in core since 5.002
 use File::Path qw(make_path); # in core since 5.001
@@ -265,6 +266,7 @@ sub new {
     my $this = $class->SUPER::new(@_);
     $this->prefer_out_of_source_building();
     _set_dh_gopkg();
+    $this->set_go_env();
     return $this;
 }
 
@@ -283,6 +285,16 @@ sub _set_dh_gopkg {
     #                             launchpad.net/mgo
     my $import = $source->{"XS-Go-Import-Path"} =~ s/\n/ /gr;
     $ENV{DH_GOPKG} = (split ",", $import)[0];
+}
+
+sub set_go_env {
+    my $this = shift;
+    $this->_set_gopath();
+    $this->_set_gocache();
+    $this->_set_go111module();
+    $this->_set_goproxy();
+    $this->_set_cgo_flags();
+    $this->_set_gocross();
 }
 
 sub _set_gopath {
@@ -308,10 +320,22 @@ sub _set_go111module {
 }
 
 sub _set_goproxy {
-    return if defined($ENV{GOPROXY}) && $ENV{GOPROXY} ne '';
+    return if defined($ENV{GOPROXY});
 
     # Disallow network access.
     $ENV{GOPROXY} = "off";
+}
+
+sub _set_cgo_flags {
+    my $bf = Dpkg::BuildFlags->new();
+    $bf->load_config();
+
+    my @flags = ( "CFLAGS", "CPPFLAGS", "CXXFLAGS", "FFLAGS", "LDFLAGS" );
+    foreach my $flag (@flags) {
+        if (! exists $ENV{"CGO_" . $flag}) {
+            $ENV{"CGO_" . $flag} = $bf->get($flag);
+        }
+    }
 }
 
 my %GOOS_MAPPING = (
@@ -364,6 +388,12 @@ sub _set_gocross {
     } else {
         error("Cannot cross-compile: Missing entry for CPU/ABI ${host_cpu_abi}.");
     }
+}
+
+my ($_go1_minor) = (qx(go version) =~ /go version go1\.([0-9]+)/);
+sub _go1_has_minor {
+    my ($minor) = @_;
+    return $_go1_minor >= $minor;
 }
 
 sub _link_contents {
@@ -457,7 +487,7 @@ sub configure {
 
     # Extra files/directories to install.
     my @install_extra = (exists($ENV{DH_GOLANG_INSTALL_EXTRA}) ?
-                         split(/ /, $ENV{DH_GOLANG_INSTALL_EXTRA}) : ());
+                         split(' ', $ENV{DH_GOLANG_INSTALL_EXTRA}) : ());
 
     find({
         wanted => sub {
@@ -512,15 +542,41 @@ sub configure {
 }
 
 sub get_targets {
+    my $this = shift;
+
     my $buildpkg = $ENV{DH_GOLANG_BUILDPKG} || "$ENV{DH_GOPKG}/...";
     my $output = qx(go list $buildpkg);
     my @excludes = (exists($ENV{DH_GOLANG_EXCLUDES}) ?
-                    split(/ /, $ENV{DH_GOLANG_EXCLUDES}) : ());
+                    split(' ', $ENV{DH_GOLANG_EXCLUDES}) : ());
     my @targets = split(/\n/, $output);
 
-    # Remove all targets that are matched by one of the regular expressions in DH_GOLANG_EXCLUDES.
+    # Remove all targets that are matched by one of the regular expressions
+    # in DH_GOLANG_EXCLUDES.
     for my $pattern (@excludes) {
+        if (! $pattern) {
+            warning("Unexpected empty \$pattern in \@excludes in get_targets().\n                       Please report this bug against dh-golang.");
+            next;
+        }
         @targets = grep { !/$pattern/ } @targets;
+    }
+
+    # Prevent "no non-test Go files" error during build,
+    # e.g. in golang.org/x/crypto/internal/wycheproof
+    # See also https://github.com/golang/go/issues/22409
+    my $caller = (caller(1))[3];
+    if ($caller eq "Debian::Debhelper::Buildsystem::golang::build") {
+        my $builddir = $this->get_builddir();
+        for my $target (@targets) {
+            my $dir = "$builddir/src/$target";
+            opendir(my $dirh, $dir) or error("Unable to open directory $dir $!");
+            my @non_test_go_files = grep { /(?<!_test)\.go$/ && -f "$dir/$_" } readdir($dirh);
+            closedir $dirh;
+
+            if (! @non_test_go_files) {
+                warning("$target contains no non-test Go files, removing it from build");
+                @targets = grep { $_ ne $target } @targets;
+            };
+        }
     }
 
     return @targets;
@@ -529,48 +585,47 @@ sub get_targets {
 sub build {
     my $this = shift;
 
-    $this->_set_gopath();
-    $this->_set_gocache();
-    $this->_set_go111module();
-    $this->_set_goproxy();
-    $this->_set_gocross();
+    if ($dh{VERBOSE}) {
+        $this->doit_in_builddir("go", "version");
+        $this->doit_in_builddir("go", "env");
+    }
+
+    my @targets = $this->get_targets();
+
     if (exists($ENV{DH_GOLANG_GO_GENERATE}) && $ENV{DH_GOLANG_GO_GENERATE} == 1) {
-        $this->doit_in_builddir("go", "generate", "-v", @_, get_targets());
+        $this->doit_in_builddir("go", "generate", "-v", @_, @targets);
     }
     unshift @_, ('-p', $this->get_parallel());
 
-    my ($minor) = (qx(go version) =~ /go version go1\.([0-9]+)/);
-    if ($minor >= 13) {
+    if (_go1_has_minor(13)) {
         # Go 1.13 officially supports reproducible build, adding new -trimpath option
         # https://github.com/golang/go/issues/16860
-        $this->doit_in_builddir("go", "install", "-trimpath", "-v", @_, get_targets());
-    } elsif ($minor >= 10) {
+        $this->doit_in_builddir("go", "install", "-trimpath", "-v", @_, @targets);
+    } elsif (_go1_has_minor(10)) {
         # Go 1.10 changed flag behaviour, -{gc,asm}flags=all= only works for Go >= 1.10.
         my $trimpath = "all=\"-trimpath=" . $ENV{GOPATH} . "/src\"";
-        $this->doit_in_builddir("go", "install", "-gcflags=$trimpath", "-asmflags=$trimpath", "-v", @_, get_targets());
+        $this->doit_in_builddir("go", "install", "-gcflags=$trimpath", "-asmflags=$trimpath", "-v", @_, @targets);
     } else {
-        $this->doit_in_builddir("go", "install", "-v", @_, get_targets());
+        $this->doit_in_builddir("go", "install", "-v", @_, @targets);
     }
 }
 
 sub test {
     my $this = shift;
 
-    $this->_set_gopath();
-    $this->_set_gocache();
-    $this->_set_go111module();
-    $this->_set_goproxy();
+    my @targets = $this->get_targets();
+
     unshift @_, ('-p', $this->get_parallel());
+
     # Go 1.10 started calling “go vet” when running “go test”. This breaks tests
     # of many not-yet-fixed upstream packages, so we disable it for the time
     # being.
-    my ($minor) = (qx(go version) =~ /go version go1\.([0-9]+)/);
-    if ($minor >= 10) {
-        $this->doit_in_builddir("go", "test", "-vet=off", "-v", @_, get_targets());
+    if (_go1_has_minor(10)) {
+        $this->doit_in_builddir("go", "test", "-vet=off", "-v", @_, @targets);
     } else {
         # For backwards-compatibility with Go < 1.10, which incorrectly
         # interprets the -vet=off flag as a target:
-        $this->doit_in_builddir("go", "test", "-v", @_, get_targets());
+        $this->doit_in_builddir("go", "test", "-v", @_, @targets);
     }
 }
 
@@ -597,7 +652,6 @@ sub install {
     if ($install_binaries and @binaries > 0) {
         $this->doit_in_builddir('mkdir', '-p', "$destdir/usr");
         if (is_cross_compiling()) {
-            $this->_set_gocross();
             $this->doit_in_builddir('cp', '-r', '-T', "bin/$ENV{GOOS}_$ENV{GOARCH}", "$destdir/usr/bin");
         } else {
             $this->doit_in_builddir('cp', '-r', 'bin', "$destdir/usr");
@@ -616,7 +670,7 @@ sub install {
                             $ENV{DH_GOLANG_EXCLUDES_ALL} : $exclude_all_default);
 
         my @excludes = (exists($ENV{DH_GOLANG_EXCLUDES}) && $exclude_all ?
-                        split(/ /, $ENV{DH_GOLANG_EXCLUDES}) : ());
+                        split(' ', $ENV{DH_GOLANG_EXCLUDES}) : ());
 
         find({
             wanted => sub {
@@ -656,9 +710,6 @@ sub install {
 
 sub clean {
     my $this = shift;
-
-    $this->_set_gopath();
-    $this->_set_go111module();
 
     # "go clean -modcache" is new in Go 1.11, so run it only if
     # $GOPATH/pkg/mod exists to avoid error with older Go versions.
