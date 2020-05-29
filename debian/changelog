@@ -1,3 +1,15 @@
+dh-golang (1.49) unstable; urgency=medium
+
+  * Team upload.
+  * Since make-4.3, there is no longer an empty line before '# Files', making
+    the awk-expression in dh_golang_autopkgtest not find the '/# File' pattern
+    due to the empty record separator. This results in TARGETS being empty and
+    autopkgtests failing. To fix, do not set the RS variable to empty, but
+    append a "grep ." to the end of the pipe in order to clean up the empty
+    lines. (Closes: 961755)
+
+ -- Michael Banck <michael.banck@credativ.de>  Fri, 29 May 2020 12:07:20 +0200
+
 dh-golang (1.48) unstable; urgency=medium
 
   * Prevent "no non-test Go files" error during build
