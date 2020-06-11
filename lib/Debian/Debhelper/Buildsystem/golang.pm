@@ -525,7 +525,7 @@ sub configure {
     # buildroot.
     ############################################################################
 
-    # NB: The naïve idea of just setting GOPATH=$builddir:/usr/share/godoc does
+    # NB: The naïve idea of just setting GOPATH=$builddir:/usr/share/gocode does
     # not work. Let’s call the two paths in $GOPATH components. go(1), when
     # installing a package, such as github.com/Debian/dcs/cmd/..., will also
     # install the compiled dependencies, e.g. github.com/mstap/godebiancontrol.
