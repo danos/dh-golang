@@ -39,9 +39,9 @@ prepare() {
 
     # Detect defined targets.
     TARGETS=$(make -pRrq -f debian/rules : 2>/dev/null |
-        awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {
+        awk -F: '/^# File/,/^# Finished Make data base/ {
             if ($1 !~ "^[#.]") {print $1}
-            }' | egrep -v -e '^[^[:alnum:]]')
+            }' | egrep -v -e '^[^[:alnum:]]' | egrep .)
     debug "Defined targets in debian/rules:" $TARGETS
 
     # Add magic var-printing target.
