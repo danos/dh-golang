@@ -404,7 +404,7 @@ sub _link_contents {
     # subfolders, this has no use and potentially only screws things up.
     # This situation should never happen, unless some package ships files that
     # are already shipped in another package.
-    my @gosrc = grep { /\.go$/ } @contents;
+    my @gosrc = grep { /\.go$/ && -f } @contents;
     return if @gosrc > 0;
     my @dirs = grep { -d } @contents;
     for my $dir (@dirs) {
