@@ -563,7 +563,7 @@ sub get_targets {
     # Prevent "no non-test Go files" error during build,
     # e.g. in golang.org/x/crypto/internal/wycheproof
     # See also https://github.com/golang/go/issues/22409
-    my $caller = (caller(1))[3];
+    my $caller = (caller(1))[3] // '(main)';
     if ($caller eq "Debian::Debhelper::Buildsystem::golang::build") {
         my $builddir = $this->get_builddir();
         for my $target (@targets) {
