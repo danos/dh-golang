@@ -1,3 +1,14 @@
+dh-golang (1.51) unstable; urgency=medium
+
+  * Team upload.
+
+  [ Guillem Jover ]
+  * Provide a dh-sequence-golang virtual package.
+    This will simplify the golang packaging by not needing to duplicate
+    the same information in both the Build-Depends and debian/rules files.
+
+ -- Shengjing Zhu <zhsj@debian.org>  Tue, 26 Jan 2021 00:26:48 +0800
+
 dh-golang (1.50) unstable; urgency=medium
 
   * Team upload.
