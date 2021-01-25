@@ -6,7 +6,7 @@ Uploaders: Michael Stapelberg <stapelberg@debian.org>,
            Dr. Tobias Quathamer <toddy@debian.org>,
 Section: devel
 Priority: optional
-Build-Depends: debhelper-compat (= 12),
+Build-Depends: debhelper-compat (= 13),
                libmodule-install-perl,
 Standards-Version: 4.5.0
 Vcs-Browser: https://salsa.debian.org/go-team/packages/dh-golang
