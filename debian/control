@@ -20,6 +20,7 @@ Depends: debhelper,
          libdpkg-perl,
          ${misc:Depends},
          ${perl:Depends},
+Provides: dh-sequence-golang
 Description: debhelper add-on for packaging software written in Go (golang)
  dh-golang provides a debhelper sequence addon named 'golang', a buildsystem
  module named 'golang' and a command called dh_golang.
