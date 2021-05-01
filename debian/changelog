@@ -1,3 +1,36 @@
+dh-golang (1.51) unstable; urgency=medium
+
+  * Team upload.
+
+  [ Guillem Jover ]
+  * Provide a dh-sequence-golang virtual package.
+    This will simplify the golang packaging by not needing to duplicate
+    the same information in both the Build-Depends and debian/rules files.
+
+ -- Shengjing Zhu <zhsj@debian.org>  Tue, 26 Jan 2021 00:26:48 +0800
+
+dh-golang (1.50) unstable; urgency=medium
+
+  * Team upload.
+
+  [ Arnaud Rebillout ]
+  * Typo in comment: godoc -> gocode.
+
+  [ Shengjing Zhu ]
+  * Don't skip directory with .go suffix when symlink (Closes: #966139)
+  * Bump debhelper-compat to 13
+  * Update Standards-Version to 4.5.1 (no changes)
+
+  [ Guillem Jover ]
+  * Debhelper::Buildsystem::golang: Fix main calling get_targets method.
+    When the get get_targets method gets called from the main package, the
+    subroutine item will be undefined. This happens when dh_golang itself
+    calls the method. If the subroutine is undefined set it to '(main)'
+    following the patters used internally by the caller builtin.
+    (Closes: #960887)
+
+ -- Shengjing Zhu <zhsj@debian.org>  Sun, 24 Jan 2021 23:23:50 +0800
+
 dh-golang (1.49~bpo10+1) buster-backports; urgency=medium
 
   * Rebuild for buster-backports.

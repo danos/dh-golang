@@ -404,7 +404,7 @@ sub _link_contents {
     # subfolders, this has no use and potentially only screws things up.
     # This situation should never happen, unless some package ships files that
     # are already shipped in another package.
-    my @gosrc = grep { /\.go$/ } @contents;
+    my @gosrc = grep { /\.go$/ && -f } @contents;
     return if @gosrc > 0;
     my @dirs = grep { -d } @contents;
     for my $dir (@dirs) {
@@ -525,7 +525,7 @@ sub configure {
     # buildroot.
     ############################################################################
 
-    # NB: The naïve idea of just setting GOPATH=$builddir:/usr/share/godoc does
+    # NB: The naïve idea of just setting GOPATH=$builddir:/usr/share/gocode does
     # not work. Let’s call the two paths in $GOPATH components. go(1), when
     # installing a package, such as github.com/Debian/dcs/cmd/..., will also
     # install the compiled dependencies, e.g. github.com/mstap/godebiancontrol.
@@ -563,7 +563,7 @@ sub get_targets {
     # Prevent "no non-test Go files" error during build,
     # e.g. in golang.org/x/crypto/internal/wycheproof
     # See also https://github.com/golang/go/issues/22409
-    my $caller = (caller(1))[3];
+    my $caller = (caller(1))[3] // '(main)';
     if ($caller eq "Debian::Debhelper::Buildsystem::golang::build") {
         my $builddir = $this->get_builddir();
         for my $target (@targets) {
